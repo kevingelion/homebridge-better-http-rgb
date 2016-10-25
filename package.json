@@ -30,6 +30,7 @@
   },
   "preferGlobal": true,
   "dependencies": {
+    "chroma-js": "^1.2.1",
     "request": "^2.65.0"
   },
   "devDependencies": {
