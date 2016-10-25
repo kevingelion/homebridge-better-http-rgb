@@ -101,14 +101,12 @@ HTTP_RGB.prototype = {
     },
 
     getServices: function() {
-        // You may OPTIONALLY define an information service if you wish to override
-        // default values for devices like serial number, model, etc.
         var informationService = new Service.AccessoryInformation();
 
         informationService
-            .setCharacteristic(Characteristic.Manufacturer, 'HTTP Manufacturer')
-            .setCharacteristic(Characteristic.Model, 'homebridge-better-http-rgb')
-            .setCharacteristic(Characteristic.SerialNumber, 'HTTP Serial Number');
+            .setCharacteristic(Characteristic.Manufacturer, 'Kevin Murphy')
+            .setCharacteristic(Characteristic.Model, 'RGB LED Strip')
+            .setCharacteristic(Characteristic.SerialNumber, '1337');
 
         switch (this.service) {
             case 'Light':
@@ -148,85 +146,13 @@ HTTP_RGB.prototype = {
                         .on('set', this.setSaturation.bind(this));
                 }
 
-                return [lightbulbService];
-
-            /*
-               These are included here as an example of what other
-               HomeKit-compatible devices can be.
-            */
-            /*
-            case 'Switch':
-                this.log('creating Switch');
-                var switchService = new Service.Switch(this.name);
-
-                if (this.switch.powerOn.status) {
-                    switchService
-                        .getCharacteristic(Characteristic.On)
-                        .on('get', this.getPowerState.bind(this))
-                        .on('set', this.setPowerState.bind(this));
-                } else {
-                    switchService
-                        .getCharacteristic(Characteristic.On)
-                        .on('set', this.setPowerState.bind(this));
-                }
-                return [switchService];
-
-            case 'Lock':
-                var lockService = new Service.LockMechanism(this.name);
-
-                lockService
-                    .getCharacteristic(Characteristic.LockCurrent)
-                    .on('get', this.getLockCurrent.bind(this))
-                    .on('set', this.setLockCurrent.bind(this));
-
-                lockService
-                    .getCharacteristic(Characteristic.LockTarget)
-                    .on('get', this.getLockTarget.bind(this))
-                    .on('set', this.setLockTarget.bind(this));
-
-                return [lockService];
-
-            case 'Smoke':
-                var smokeService = new Service.SmokeSensor(this.name);
-
-                smokeService
-                    .getCharacteristic(Characteristic.SmokeDetected)
-                    .on('set', this.getSmokeDetected.bind(this));
-
-                return [smokeService];
-
-            case 'Motion':
-                var motionService = new Service.MotionSensor(this.name);
-
-                motionService
-                    .getCharacteristic(Characteristic.MotionDetected)
-                    .on('get', this.getMotionDetected.bind(this));
-
-                return [motionService];
-
-            case 'Temp':
-                var temperatureService = new Service.TemperatureSensor(this.name);
-
-                temperatureService
-                    .getCharacteristic(Characteristic.CurrentTemperature)
-                    .on('get', this.getTemperature.bind(this));
-
-                var humidityService = new Service.HumiditySensor(this.name);
-                humidityService
-                    .getCharacteristic(Characteristic.CurrentRelativeHumidity)
-                    .on('get', this.getHumidity.bind(this));
-
-                return [temperatureService, humidityService];
-
-            */
+                return [informationService, lightbulbService];
 
             default:
                 return [informationService];
 
         } // end switch
     },
-
-    //** Custom Functions **//
 
     /**
      * Gets power state of lightbulb.
@@ -367,9 +293,9 @@ HTTP_RGB.prototype = {
                 callback(error);
             } else {
                 var hue = Math.round(chroma(
-                  parseInt(responseBody.substr(0,2),16),
-                  parseInt(responseBody.substr(2,2),16),
-                  parseInt(responseBody.substr(4,2),16)
+                    parseInt(responseBody.substr(0,2),16),
+                    parseInt(responseBody.substr(2,2),16),
+                    parseInt(responseBody.substr(4,2),16)
                 ).get("hsv.h"));
 
                 this.log('... hue is currently %s', hue);
@@ -415,9 +341,9 @@ HTTP_RGB.prototype = {
                 callback(error);
             } else {
                 var saturation = Math.round(chroma(
-                  parseInt(responseBody.substr(0,2),16),
-                  parseInt(responseBody.substr(2,2),16),
-                  parseInt(responseBody.substr(4,2),16)
+                    parseInt(responseBody.substr(0,2),16),
+                    parseInt(responseBody.substr(2,2),16),
+                    parseInt(responseBody.substr(4,2),16)
                 ).get("hsv.s") * 100);
 
                 this.log('... saturation is currently %s', saturation);
