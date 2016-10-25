@@ -307,6 +307,7 @@ HTTP_RGB.prototype = {
                 } else {
                     var level = parseInt(responseBody);
                     this.log('brightness is currently at %s %', level);
+                    this.cache.brightness = level;
                     callback(null, level);
                 }
             }.bind(this));
