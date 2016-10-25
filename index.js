@@ -342,7 +342,7 @@ HTTP_RGB.prototype = {
                 }
             }.bind(this));
         } else {
-            this._setRGB(callback);
+            this._setRGB(callback, "brightness");
         }
     },
 
@@ -394,7 +394,7 @@ HTTP_RGB.prototype = {
         this.log('Caching Hue as %s ...', level);
         this.cache.hue = level;
 
-        this._setRGB(callback);
+        this._setRGB(callback, "hue");
     },
 
     /**
@@ -446,7 +446,7 @@ HTTP_RGB.prototype = {
         this.log('Caching Saturation as %s ...', level);
         this.cache.saturation = level;
 
-        this._setRGB(callback);
+        this._setRGB(callback, "saturation");
     },
 
     /**
@@ -454,7 +454,8 @@ HTTP_RGB.prototype = {
      *
      * @param {function} callback The callback that handles the response.
      */
-    _setRGB: function(callback) {
+    _setRGB: function(callback, fromFunction, makeRequest) {
+        if (typeof(makeRequest)==='undefined') makeRequest = true;
         var rgb = this._hsvToRgb(this.cache.hue, this.cache.saturation, this.cache.brightness);
         var r = this._decToHex(rgb.r);
         var g = this._decToHex(rgb.g);
@@ -464,15 +465,19 @@ HTTP_RGB.prototype = {
 
         this.log('_setRGB converting H:%s S:%s B:%s to RGB:%s ...', this.cache.hue, this.cache.saturation, this.cache.brightness, r + g + b);
 
-        this._httpRequest(url, '', this.color.http_method, function(error, response, body) {
-            if (error) {
-                this.log('... _setRGB() failed: %s', error);
-                callback(error);
-            } else {
-                this.log('... _setRGB() successfully set to #%s', r + g + b);
-                callback();
-            }
-        }.bind(this));
+        if (makeRequest) {
+          this._httpRequest(url, '', this.color.http_method, function(error, response, body) {
+              if (error) {
+                  this.log('... _setRGB() failed: %s', error);
+                  callback(error);
+              } else {
+                  this.log('... _setRGB(' + fromFunction + ') successfully set to #%s', r + g + b);
+                  callback();
+              }
+          }.bind(this));
+        } else {
+          callback();
+        }
     },
 
     /** Utility Functions **/
