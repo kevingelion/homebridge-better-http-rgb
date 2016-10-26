@@ -300,7 +300,7 @@ HTTP_RGB.prototype = {
                     parseInt(responseBody.substr(0,2),16),
                     parseInt(responseBody.substr(2,2),16),
                     parseInt(responseBody.substr(4,2),16)
-                ).get("hsv.h"));
+                ).get("hsv.h")) || 0;
 
                 this.log('... hue is currently %s', hue);
                 this.cache.hue = hue;
