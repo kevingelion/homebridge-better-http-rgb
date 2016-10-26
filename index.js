@@ -1,7 +1,6 @@
 var Service, Characteristic;
 var request = require('request');
 var chroma = require('chroma-js');
-var _ = require('underscore');
 
 /**
  * @module homebridge
@@ -147,7 +146,9 @@ HTTP_RGB.prototype = {
                         .on('set', this.setSaturation.bind(this));
                 }
 
-                this.setColour = _.debounce(this.setRGB, 250);
+                // Create a version of _setRGB() that only gets called the 2nd
+                // time
+                this._limitRGB = this._debounce(this._setRGB, 1);
 
                 return [informationService, lightbulbService];
 
@@ -273,7 +274,7 @@ HTTP_RGB.prototype = {
                 }
             }.bind(this));
         } else {
-            this.setRGB();
+            this._setRGB();
             callback();
         }
     },
@@ -323,7 +324,7 @@ HTTP_RGB.prototype = {
         this.log('Caching Hue as %s ...', level);
         this.cache.hue = level;
 
-        this.setColour();
+        this._limitRGB();
         callback();
     },
 
@@ -373,7 +374,7 @@ HTTP_RGB.prototype = {
         this.log('Caching Saturation as %s ...', level);
         this.cache.saturation = level;
 
-        this.setColour();
+        this._limitRGB();
         callback();
     },
 
@@ -386,7 +387,7 @@ HTTP_RGB.prototype = {
      *
      * @param {function} callback The callback that handles the response.
      */
-    setRGB: function() {
+    _setRGB: function() {
         var hex = chroma(this.cache.hue, this.cache.saturation / 100, this.cache.brightness / 100, 'hsv').hex().replace('#', '');
         var url = this.color.set_url.replace('%s', hex);
         this.log('_setRGB converting H:%s S:%s B:%s to RGB:%s ...', this.cache.hue, this.cache.saturation, this.cache.brightness, hex);
@@ -423,6 +424,24 @@ HTTP_RGB.prototype = {
         function(error, response, body) {
             callback(error, response, body);
         });
+    },
+
+    /**
+     * Return a new function that calls input function after a certain limit.
+     *
+     * @param {function} fnc Function to call
+     * @param {integer} limit How many times `fnc` needs to be called before 
+     * actually calling the function
+     */
+    _debounce: function(fnc, limit) {
+        let n = 0;
+        return function() {
+            if (n >= limit) {
+                n = 0;
+                return fnc.apply(this);
+            }
+            n++;
+        }
     }
 
 };
