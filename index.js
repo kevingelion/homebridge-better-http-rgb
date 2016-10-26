@@ -1,6 +1,7 @@
 var Service, Characteristic;
 var request = require('request');
 var chroma = require('chroma-js');
+var _ = require('underscore');
 
 /**
  * @module homebridge
@@ -146,6 +147,8 @@ HTTP_RGB.prototype = {
                         .on('set', this.setSaturation.bind(this));
                 }
 
+                this.setColour = _.debounce(this.setRGB, 250);
+
                 return [informationService, lightbulbService];
 
             default:
@@ -270,7 +273,8 @@ HTTP_RGB.prototype = {
                 }
             }.bind(this));
         } else {
-            this._setRGB(callback, "brightness");
+            this.setRGB();
+            callback();
         }
     },
 
@@ -319,7 +323,8 @@ HTTP_RGB.prototype = {
         this.log('Caching Hue as %s ...', level);
         this.cache.hue = level;
 
-        this._setRGB(callback, "hue");
+        this.setColour();
+        callback();
     },
 
     /**
@@ -368,7 +373,12 @@ HTTP_RGB.prototype = {
         this.log('Caching Saturation as %s ...', level);
         this.cache.saturation = level;
 
-        this._setRGB(callback, "saturation");
+        this.setColour();
+        callback();
+    },
+
+    setC: function() {
+      console.log("called");
     },
 
     /**
@@ -376,27 +386,18 @@ HTTP_RGB.prototype = {
      *
      * @param {function} callback The callback that handles the response.
      */
-    _setRGB: function(callback, fromFunction, makeRequest) {
-        if (typeof(makeRequest)==='undefined') makeRequest = true;
+    setRGB: function() {
         var hex = chroma(this.cache.hue, this.cache.saturation / 100, this.cache.brightness / 100, 'hsv').hex().replace('#', '');
-
         var url = this.color.set_url.replace('%s', hex);
-
         this.log('_setRGB converting H:%s S:%s B:%s to RGB:%s ...', this.cache.hue, this.cache.saturation, this.cache.brightness, hex);
 
-        if (makeRequest) {
-          this._httpRequest(url, '', this.color.http_method, function(error, response, body) {
-              if (error) {
-                  this.log('... _setRGB() failed: %s', error);
-                  callback(error);
-              } else {
-                  this.log('... _setRGB(' + fromFunction + ') successfully set to #%s', hex);
-                  callback();
-              }
-          }.bind(this));
-        } else {
-          callback();
-        }
+        this._httpRequest(url, '', this.color.http_method, function(error, response, body) {
+            if (error) {
+                this.log('... _setRGB() failed: %s', error);
+            } else {
+                this.log('... _setRGB() successfully set to #%s', hex);
+            }
+        }.bind(this));
     },
 
     /** Utility Functions **/
