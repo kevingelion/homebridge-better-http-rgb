@@ -392,7 +392,7 @@ HTTP_RGB.prototype = {
                 this.log('... _setRGB() successfully set to #%s', hex);
             }
         }.bind(this));
-    }, 50),
+    }, 200),
 
     /** Utility Functions **/
     /**
