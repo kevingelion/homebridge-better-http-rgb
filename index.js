@@ -28,33 +28,16 @@ function HTTP_RGB(log, config) {
     // any information to the console in a controlled and organized manner.
     this.log = log;
 
-    this.service                       = 'Light';
-    this.name                          = config.name;
+    this.service     = 'Light';
+    this.name        = config.name;
 
-    this.http_method                   = config.http_method               || 'GET';
-    this.username                      = config.username                  || '';
-    this.password                      = config.password                  || '';
+    this.username    = config.username                  || '';
+    this.password    = config.password                  || '';
 
     // Handle the basic on/off
     this.switch = { powerOn: {}, powerOff: {} };
     if (typeof config.switch === 'object') {
-        this.switch.status                 = config.switch.status;
-
-        // Intelligently handle if config.switch.powerOn is an object or string.
-        if (typeof config.switch.powerOn === 'object') {
-            this.switch.powerOn.set_url    = config.switch.powerOn.url;
-            this.switch.powerOn.body       = config.switch.powerOn.body;
-        } else {
-            this.switch.powerOn.set_url    = config.switch.powerOn;
-        }
-
-        // Intelligently handle if config.switch.powerOff is an object or string.
-        if (typeof config.switch.powerOff === 'object') {
-            this.switch.powerOff.set_url   = config.switch.powerOff.url;
-            this.switch.powerOff.body      = config.switch.powerOff.body;
-        } else {
-            this.switch.powerOff.set_url   = config.switch.powerOff;
-        }
+        this.switch.url = config.switch.url;
     }
 
     // Local caching of HSB color space for RGB callback
@@ -62,11 +45,9 @@ function HTTP_RGB(log, config) {
 
     // Handle brightness
     if (typeof config.brightness === 'object') {
-        this.brightness = {};
-        this.brightness.status         = config.brightness.status;
-        this.brightness.set_url        = config.brightness.url            || this.brightness.status;
-        this.brightness.http_method    = config.brightness.http_method    || this.http_method;
-        this.cache.brightness = 0;
+        this.brightness          = {};
+        this.brightness.url      = config.brightness.url;
+        this.cache.brightness    = 0;
     } else {
         this.brightness = false;
         this.cache.brightness = 100;
@@ -74,13 +55,11 @@ function HTTP_RGB(log, config) {
 
     // Color handling
     if (typeof config.color === 'object') {
-        this.color = {};
-        this.color.status              = config.color.status;
-        this.color.set_url             = config.color.url                 || this.color.status;
-        this.color.http_method         = config.color.http_method         || this.http_method;
-        this.color.brightness          = config.color.brightness;
-        this.cache.hue = 0;
-        this.cache.saturation = 0;
+        this.color               = {};
+        this.color.url           = config.color.url;
+        this.color.brightness    = config.color.brightness;
+        this.cache.hue           = 0;
+        this.cache.saturation    = 0;
     } else {
         this.color = false;
     }
@@ -114,14 +93,10 @@ HTTP_RGB.prototype = {
                 this.log('creating Lightbulb');
                 var lightbulbService = new Service.Lightbulb(this.name);
 
-                if (this.switch.status) {
+                if (this.switch.url) {
                     lightbulbService
                         .getCharacteristic(Characteristic.On)
                         .on('get', this.getPowerState.bind(this))
-                        .on('set', this.setPowerState.bind(this));
-                } else {
-                    lightbulbService
-                        .getCharacteristic(Characteristic.On)
                         .on('set', this.setPowerState.bind(this));
                 }
 
@@ -161,15 +136,13 @@ HTTP_RGB.prototype = {
      * @param {function} callback The callback that handles the response.
      */
     getPowerState: function(callback) {
-        if (!this.switch.status) {
-            this.log.warn('Ignoring request, switch.status not defined.');
-            callback(new Error('No switch.status url defined.'));
+        if (!this.switch.url) {
+            this.log.warn('Ignoring request, switch.url not defined.');
+            callback(new Error('No switch.url url defined.'));
             return;
         }
 
-        var url = this.switch.status;
-
-        this._httpRequest(url, '', 'GET', function(error, response, responseBody) {
+        this._httpRequest(this.switch.url, '', 'GET', function(error, response, responseBody) {
             if (error) {
                 this.log('getPowerState() failed: %s', error.message);
                 callback(error);
@@ -187,24 +160,15 @@ HTTP_RGB.prototype = {
      * @param {function} callback The callback that handles the response.
      */
     setPowerState: function(state, callback) {
-        var url;
-        var body;
-
-        if (!this.switch.powerOn.set_url || !this.switch.powerOff.set_url) {
-            this.log.warn('Ignoring request, powerOn.url or powerOff.url is not defined.');
+        if (!this.switch.url) {
+            this.log.warn('Ignoring request, switch.url is not defined.');
             callback(new Error("The 'switch' section in your configuration is incorrect."));
             return;
         }
 
-        if (state) {
-            url = this.switch.powerOn.set_url;
-            body = this.switch.powerOn.body;
-        } else {
-            url = this.switch.powerOff.set_url;
-            body = this.switch.powerOff.body;
-        }
+        var body = { "value": state ? "on" : "off" }
 
-        this._httpRequest(url, body, this.http_method, function(error, response, responseBody) {
+        this._httpRequest(this.switch.url, body, "POST", function(error, response, responseBody) {
             if (error) {
                 this.log('setPowerState() failed: %s', error.message);
                 callback(error);
@@ -228,7 +192,7 @@ HTTP_RGB.prototype = {
         }
 
         if (this.brightness) {
-            this._httpRequest(this.brightness.status, '', 'GET', function(error, response, responseBody) {
+            this._httpRequest(this.brightness.url, '', 'GET', function(error, response, responseBody) {
                 if (error) {
                     this.log('getBrightness() failed: %s', error.message);
                     callback(error);
@@ -259,9 +223,9 @@ HTTP_RGB.prototype = {
 
         // If achromatic, then update brightness, otherwise, update HSL as RGB
         if (!this.color) {
-            var url = this.brightness.set_url.replace('%s', level);
+            var body = { "value": level }
 
-            this._httpRequest(url, '', this.brightness.http_method, function(error, response, body) {
+            this._httpRequest(this.brightness.url, body, "POST", function(error, response, body) {
                 if (error) {
                     this.log('setBrightness() failed: %s', error);
                     callback(error);
@@ -282,14 +246,13 @@ HTTP_RGB.prototype = {
      * @param {function} callback The callback that handles the response.
      */
     getHue: function(callback) {
-        if (this.color && typeof this.color.status !== 'string') {
+        if (this.color && typeof this.color.url !== 'string') {
             this.log.warn("Ignoring request; problem with 'color' variables.");
             callback(new Error("There was a problem parsing the 'color' section of your configuration."));
             return;
         }
-        var url = this.color.status;
 
-        this._httpRequest(url, '', 'GET', function(error, response, responseBody) {
+        this._httpRequest(this.color.url, '', 'GET', function(error, response, responseBody) {
             if (error) {
                 this.log('... getHue() failed: %s', error.message);
                 callback(error);
@@ -313,7 +276,7 @@ HTTP_RGB.prototype = {
      * @param {function} callback The callback that handles the response.
      */
     setHue: function(level, callback) {
-        if (this.color && typeof this.color.set_url !== 'string') {
+        if (this.color && typeof this.color.url !== 'string') {
             this.log.warn("Ignoring request; problem with 'color' variables.");
             callback(new Error("There was a problem parsing the 'color' section of your configuration."));
             return;
@@ -331,14 +294,13 @@ HTTP_RGB.prototype = {
      * @param {function} callback The callback that handles the response.
      */
     getSaturation: function(callback) {
-        if (this.color && typeof this.color.status !== 'string') {
+        if (this.color && typeof this.color.url !== 'string') {
             this.log.warn("Ignoring request; problem with 'color' variables.");
             callback(new Error("There was a problem parsing the 'color' section of your configuration."));
             return;
         }
-        var url = this.color.status;
 
-        this._httpRequest(url, '', 'GET', function(error, response, responseBody) {
+        this._httpRequest(this.color.url, '', 'GET', function(error, response, responseBody) {
             if (error) {
                 this.log('... getSaturation() failed: %s', error.message);
                 callback(error);
@@ -363,7 +325,7 @@ HTTP_RGB.prototype = {
      * @param {function} callback The callback that handles the response.
      */
     setSaturation: function(level, callback) {
-        if (this.color && typeof this.color.set_url !== 'string') {
+        if (this.color && typeof this.color.url !== 'string') {
             this.log.warn("Ignoring request; problem with 'color' variables.");
             callback(new Error("There was a problem parsing the 'color' section of your configuration."));
             return;
@@ -382,10 +344,11 @@ HTTP_RGB.prototype = {
      */
     _setRGB: _.debounce(function() {
         var hex = chroma(this.cache.hue, this.cache.saturation / 100, this.cache.brightness / 100, 'hsv').hex().replace('#', '');
-        var url = this.color.set_url.replace('%s', hex);
         this.log('_setRGB converting H:%s S:%s B:%s to RGB:%s ...', this.cache.hue, this.cache.saturation, this.cache.brightness, hex);
 
-        this._httpRequest(url, '', this.color.http_method, function(error, response, body) {
+        var body = { "value": hex }
+
+        this._httpRequest(this.color.url, body, "POST", function(error, response, body) {
             if (error) {
                 this.log('... _setRGB() failed: %s', error);
             } else {
@@ -406,7 +369,7 @@ HTTP_RGB.prototype = {
     _httpRequest: function(url, body, method, callback) {
         request({
             url: url,
-            body: body,
+            json: body,
             method: method,
             rejectUnauthorized: false,
             auth: {
