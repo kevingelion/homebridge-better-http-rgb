@@ -168,7 +168,7 @@ HTTP_RGB.prototype = {
             return;
         }
 
-        var body = { "value": state ? "on" : "off" }
+        var body = { "value": state ? "on" : "off" };
 
         this._httpRequest(this.switch.url, body, "POST", function(error, response, responseBody) {
             if (error) {
@@ -225,7 +225,7 @@ HTTP_RGB.prototype = {
 
         // If achromatic, then update brightness, otherwise, update HSL as RGB
         if (!this.color) {
-            var body = { "value": level }
+            var body = { "value": level };
 
             this._httpRequest(this.brightness.url, body, "POST", function(error, response, body) {
                 if (error) {
@@ -360,7 +360,7 @@ HTTP_RGB.prototype = {
         var hex = chroma(this.cache.hue, this.cache.saturation / 100, this.cache.brightness / 100, 'hsv').hex().replace('#', '');
         this.log('_setRGB converting H:%s S:%s B:%s to RGB:%s ...', this.cache.hue, this.cache.saturation, this.cache.brightness, hex);
 
-        var body = { "value": hex }
+        var body = { "value": hex };
 
         this._httpRequest(this.color.url, body, "POST", function(error, response, body) {
             if (error) {
@@ -372,17 +372,20 @@ HTTP_RGB.prototype = {
 
         // When running tests, this function should return cached values
         if (test) {
+            var result;
             switch (type) {
                 case "hue":
-                    return this.cache.hue;
+                    result = this.cache.hue;
                     break;
                 case "saturation":
-                    return this.cache.saturation;
+                    result = this.cache.saturation;
                     break;
                 default:
-                    return this.cache.brightness;
+                    result = this.cache.brightness;
                     break;
             }
+
+            return result;
         }
     },
 
