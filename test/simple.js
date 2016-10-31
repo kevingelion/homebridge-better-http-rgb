@@ -3,13 +3,10 @@ var config = function(port) {
     return {
         "name": "Test Accessory",
         "switch": {
-            "status": "http://localhost:"+port+"/power/status",
-            "powerOn": "http://localhost:"+port+"/power/set/on",
-            "powerOff": "http://localhost:"+port+"/power/set/off"
+            "url": "http://localhost:"+port+"/api/v1/status"
         },
         "color": {
-            "status": "http://localhost:"+port+"/color/status",
-            "url": "http://localhost:"+port+"/color/set/%s",
+            "status": "http://localhost:"+port+"/api/v1/color",
             "brightness": true
         }
     };
