@@ -5,8 +5,11 @@ var config = function(port) {
         "switch": {
             "url": "http://localhost:"+port+"/api/v1/status"
         },
+        "brightness": {
+            "url": "http://localhost:"+port+"/api/v1/brightness"
+        },
         "color": {
-            "status": "http://localhost:"+port+"/api/v1/color",
+            "url": "http://localhost:"+port+"/api/v1/color",
             "brightness": true
         }
     };
@@ -58,11 +61,25 @@ describe("HTTP-RGB Accessory", function() {
         });
 
         it("setPowerState: true", function(done) {
-            my.setPowerState(true, function(err, val) { expect(err).to.equal(undefined); expect(val).to.equal("1"); done(); });
+            my.setPowerState(true, function(err, val) { expect(err).to.equal(undefined); expect(val.toString()).to.equal("1"); done(); });
         });
 
         it("setPowerState: false", function(done) {
-            my.setPowerState(false, function(err, val) { expect(err).to.equal(undefined); expect(val).to.equal("0"); done(); });
+            my.setPowerState(false, function(err, val) { expect(err).to.equal(undefined); expect(val.toString()).to.equal("0"); done(); });
+        });
+    });
+
+    describe("color", function() {
+        it("getBrightness", function(done) {
+            my.getBrightness(function(err, val) { expect(val.toString()).to.equal("0"); done(); });
+        });
+
+        it("getSaturation", function(done) {
+            my.getSaturation(function(err, val) { expect(val.toString()).to.equal("0"); done(); });
+        });
+
+        it("getHue", function(done) {
+            my.getHue(function(err, val) { expect(val.toString()).to.equal("0"); done(); });
         });
     });
 });

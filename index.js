@@ -122,7 +122,7 @@ HTTP_RGB.prototype = {
                         .on('set', this.setSaturation.bind(this));
                 }
 
-                return [informationService, lightbulbService];
+                return [lightbulbService, informationService];
 
             default:
                 return [informationService];
