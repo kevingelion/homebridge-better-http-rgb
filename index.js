@@ -1,5 +1,7 @@
 var Service, Characteristic;
 var request = require('request');
+var chroma = require('chroma-js');
+var _ = require('underscore');
 
 /**
  * @module homebridge
@@ -100,14 +102,12 @@ HTTP_RGB.prototype = {
     },
 
     getServices: function() {
-        // You may OPTIONALLY define an information service if you wish to override
-        // default values for devices like serial number, model, etc.
         var informationService = new Service.AccessoryInformation();
 
         informationService
-            .setCharacteristic(Characteristic.Manufacturer, 'HTTP Manufacturer')
-            .setCharacteristic(Characteristic.Model, 'homebridge-better-http-rgb')
-            .setCharacteristic(Characteristic.SerialNumber, 'HTTP Serial Number');
+            .setCharacteristic(Characteristic.Manufacturer, 'Kevin Murphy')
+            .setCharacteristic(Characteristic.Model, 'RGB LED Strip')
+            .setCharacteristic(Characteristic.SerialNumber, '1337');
 
         switch (this.service) {
             case 'Light':
@@ -147,85 +147,13 @@ HTTP_RGB.prototype = {
                         .on('set', this.setSaturation.bind(this));
                 }
 
-                return [lightbulbService];
-
-            /*
-               These are included here as an example of what other
-               HomeKit-compatible devices can be.
-            */
-            /*
-            case 'Switch':
-                this.log('creating Switch');
-                var switchService = new Service.Switch(this.name);
-
-                if (this.switch.powerOn.status) {
-                    switchService
-                        .getCharacteristic(Characteristic.On)
-                        .on('get', this.getPowerState.bind(this))
-                        .on('set', this.setPowerState.bind(this));
-                } else {
-                    switchService
-                        .getCharacteristic(Characteristic.On)
-                        .on('set', this.setPowerState.bind(this));
-                }
-                return [switchService];
-
-            case 'Lock':
-                var lockService = new Service.LockMechanism(this.name);
-
-                lockService
-                    .getCharacteristic(Characteristic.LockCurrent)
-                    .on('get', this.getLockCurrent.bind(this))
-                    .on('set', this.setLockCurrent.bind(this));
-
-                lockService
-                    .getCharacteristic(Characteristic.LockTarget)
-                    .on('get', this.getLockTarget.bind(this))
-                    .on('set', this.setLockTarget.bind(this));
-
-                return [lockService];
-
-            case 'Smoke':
-                var smokeService = new Service.SmokeSensor(this.name);
-
-                smokeService
-                    .getCharacteristic(Characteristic.SmokeDetected)
-                    .on('set', this.getSmokeDetected.bind(this));
-
-                return [smokeService];
-
-            case 'Motion':
-                var motionService = new Service.MotionSensor(this.name);
-
-                motionService
-                    .getCharacteristic(Characteristic.MotionDetected)
-                    .on('get', this.getMotionDetected.bind(this));
-
-                return [motionService];
-
-            case 'Temp':
-                var temperatureService = new Service.TemperatureSensor(this.name);
-
-                temperatureService
-                    .getCharacteristic(Characteristic.CurrentTemperature)
-                    .on('get', this.getTemperature.bind(this));
-
-                var humidityService = new Service.HumiditySensor(this.name);
-                humidityService
-                    .getCharacteristic(Characteristic.CurrentRelativeHumidity)
-                    .on('get', this.getHumidity.bind(this));
-
-                return [temperatureService, humidityService];
-
-            */
+                return [informationService, lightbulbService];
 
             default:
                 return [informationService];
 
         } // end switch
     },
-
-    //** Custom Functions **//
 
     /**
      * Gets power state of lightbulb.
@@ -307,6 +235,7 @@ HTTP_RGB.prototype = {
                 } else {
                     var level = parseInt(responseBody);
                     this.log('brightness is currently at %s %', level);
+                    this.cache.brightness = level;
                     callback(null, level);
                 }
             }.bind(this));
@@ -342,7 +271,8 @@ HTTP_RGB.prototype = {
                 }
             }.bind(this));
         } else {
-            this._setRGB(callback);
+            this._setRGB();
+            callback();
         }
     },
 
@@ -364,14 +294,11 @@ HTTP_RGB.prototype = {
                 this.log('... getHue() failed: %s', error.message);
                 callback(error);
             } else {
-                var rgb = responseBody;
-                var levels = this._rgbToHsl(
-                    parseInt(rgb.substr(0,2),16),
-                    parseInt(rgb.substr(2,2),16),
-                    parseInt(rgb.substr(4,2),16)
-                );
-
-                var hue = levels[0];
+                var hue = Math.round(chroma(
+                    parseInt(responseBody.substr(0,2),16),
+                    parseInt(responseBody.substr(2,2),16),
+                    parseInt(responseBody.substr(4,2),16)
+                ).get("hsv.h")) || 0;
 
                 this.log('... hue is currently %s', hue);
                 this.cache.hue = hue;
@@ -394,7 +321,8 @@ HTTP_RGB.prototype = {
         this.log('Caching Hue as %s ...', level);
         this.cache.hue = level;
 
-        this._setRGB(callback);
+        this._setRGB();
+        callback();
     },
 
     /**
@@ -415,14 +343,11 @@ HTTP_RGB.prototype = {
                 this.log('... getSaturation() failed: %s', error.message);
                 callback(error);
             } else {
-                var rgb = responseBody;
-                var levels = this._rgbToHsl(
-                    parseInt(rgb.substr(0,2),16),
-                    parseInt(rgb.substr(2,2),16),
-                    parseInt(rgb.substr(4,2),16)
-                );
-
-                var saturation = levels[1];
+                var saturation = Math.round(chroma(
+                    parseInt(responseBody.substr(0,2),16),
+                    parseInt(responseBody.substr(2,2),16),
+                    parseInt(responseBody.substr(4,2),16)
+                ).get("hsv.s") * 100);
 
                 this.log('... saturation is currently %s', saturation);
                 this.cache.saturation = saturation;
@@ -446,7 +371,8 @@ HTTP_RGB.prototype = {
         this.log('Caching Saturation as %s ...', level);
         this.cache.saturation = level;
 
-        this._setRGB(callback);
+        this._setRGB();
+        callback();
     },
 
     /**
@@ -454,26 +380,19 @@ HTTP_RGB.prototype = {
      *
      * @param {function} callback The callback that handles the response.
      */
-    _setRGB: function(callback) {
-        var rgb = this._hsvToRgb(this.cache.hue, this.cache.saturation, this.cache.brightness);
-        var r = this._decToHex(rgb.r);
-        var g = this._decToHex(rgb.g);
-        var b = this._decToHex(rgb.b);
-
-        var url = this.color.set_url.replace('%s', r + g + b);
-
-        this.log('_setRGB converting H:%s S:%s B:%s to RGB:%s ...', this.cache.hue, this.cache.saturation, this.cache.brightness, r + g + b);
+    _setRGB: _.debounce(function() {
+        var hex = chroma(this.cache.hue, this.cache.saturation / 100, this.cache.brightness / 100, 'hsv').hex().replace('#', '');
+        var url = this.color.set_url.replace('%s', hex);
+        this.log('_setRGB converting H:%s S:%s B:%s to RGB:%s ...', this.cache.hue, this.cache.saturation, this.cache.brightness, hex);
 
         this._httpRequest(url, '', this.color.http_method, function(error, response, body) {
             if (error) {
                 this.log('... _setRGB() failed: %s', error);
-                callback(error);
             } else {
-                this.log('... _setRGB() successfully set to #%s', r + g + b);
-                callback();
+                this.log('... _setRGB() successfully set to #%s', hex);
             }
         }.bind(this));
-    },
+    }, 200),
 
     /** Utility Functions **/
     /**
@@ -498,97 +417,6 @@ HTTP_RGB.prototype = {
         function(error, response, body) {
             callback(error, response, body);
         });
-    },
-
-    /**
-     * Converts an HSV color value to RGB. Conversion formula
-     * adapted from http://stackoverflow.com/a/17243070/2061684
-     * Assumes h in [0..360], and s and l in [0..100] and
-     * returns r, g, and b in [0..255].
-     *
-     * @param   {Number}  h       The hue
-     * @param   {Number}  s       The saturation
-     * @param   {Number}  l       The lightness
-     * @return  {Array}           The RGB representation
-     */
-    _hsvToRgb: function(h, s, v) {
-        var r, g, b, i, f, p, q, t;
-
-        h /= 360;
-        s /= 100;
-        v /= 100;
-
-        i = Math.floor(h * 6);
-        f = h * 6 - i;
-        p = v * (1 - s);
-        q = v * (1 - f * s);
-        t = v * (1 - (1 - f) * s);
-        switch (i % 6) {
-            case 0: r = v; g = t; b = p; break;
-            case 1: r = q; g = v; b = p; break;
-            case 2: r = p; g = v; b = t; break;
-            case 3: r = p; g = q; b = v; break;
-            case 4: r = t; g = p; b = v; break;
-            case 5: r = v; g = p; b = q; break;
-        }
-        var rgb = { r: Math.round(r * 255), g: Math.round(g * 255), b: Math.round(b * 255) };
-        return rgb;
-    },
-
-    /**
-     * Converts an RGB color value to HSL. Conversion formula
-     * adapted from http://en.wikipedia.org/wiki/HSL_color_space.
-     * Assumes r, g, and b are in [0..255] and
-     * returns h in [0..360], and s and l in [0..100].
-     *
-     * @param   {Number}  r       The red color value
-     * @param   {Number}  g       The green color value
-     * @param   {Number}  b       The blue color value
-     * @return  {Array}           The HSL representation
-     */
-    _rgbToHsl: function(r, g, b){
-        r /= 255;
-        g /= 255;
-        b /= 255;
-        var max = Math.max(r, g, b), min = Math.min(r, g, b);
-        var h, s, l = (max + min) / 2;
-
-        if(max == min){
-            h = s = 0; // achromatic
-        }else{
-            var d = max - min;
-            s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-            switch(max){
-                case r: h = (g - b) / d + (g < b ? 6 : 0); break;
-                case g: h = (b - r) / d + 2; break;
-                case b: h = (r - g) / d + 4; break;
-            }
-            h /= 6;
-        }
-
-        h *= 360; // return degrees [0..360]
-        s *= 100; // return percent [0..100]
-        l *= 100; // return percent [0..100]
-        return [parseInt(h), parseInt(s), parseInt(l)];
-    },
-
-    /**
-     * Converts a decimal number into a hexidecimal string, with optional
-     * padding (default 2 characters).
-     *
-     * @param   {Number} d        Decimal number
-     * @param   {String} padding  Padding for the string
-     * @return  {String}          '0' padded hexidecimal number
-     */
-    _decToHex: function(d, padding) {
-        var hex = Number(d).toString(16);
-        padding = typeof (padding) === 'undefined' || padding === null ? padding = 2 : padding;
-
-        while (hex.length < padding) {
-            hex = '0' + hex;
-        }
-
-        return hex;
     }
 
 };
