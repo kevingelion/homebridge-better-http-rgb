@@ -1,5 +1,5 @@
 {
-  "name": "homebridge-better-http-rgb",
+  "name": "homebridge-http-rgb",
   "version": "1.0.0",
   "description": "Homebridge plugin to control a web-based RGB device.",
   "license": "ISC",
@@ -11,17 +11,18 @@
     "homebridge": ">=0.2.0"
   },
   "author": {
-    "name": "Justin J. Novack",
-    "email": "jnovack@gmail.com"
+    "name": "Kevin Murphy",
+    "email": "me@berryboy.org"
   },
   "contributors": [
     {
+      "name": "Justin J. Novack",
       "name": "Adrian Rudman"
     }
   ],
   "repository": {
     "type": "git",
-    "url": "git://github.com/jnovack/homebridge-better-http-rgb.git"
+    "url": "git://github.com/kevingelion/homebridge-http-rgb.git"
   },
   "scripts": {
     "lint": "grunt lint",

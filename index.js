@@ -11,7 +11,7 @@ var request = require('request'),
 module.exports = function(homebridge){
     Service = homebridge.hap.Service;
     Characteristic = homebridge.hap.Characteristic;
-    homebridge.registerAccessory('homebridge-better-http-rgb', 'HTTP-RGB', HTTP_RGB);
+    homebridge.registerAccessory('homebridge-http-rgb', 'HTTP-RGB', HTTP_RGB);
 };
 
 /**

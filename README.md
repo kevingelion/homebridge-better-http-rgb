@@ -1,4 +1,4 @@
-# homebridge-better-http-rgb
+# homebridge-http-rgb
 
 Supports RGB http(s) devices on the HomeBridge Platform and provides a readable
 callback for getting and setting the following characteristics to Homekit:
@@ -12,7 +12,7 @@ callback for getting and setting the following characteristics to Homekit:
 # Installation
 
 1. Install homebridge using: `npm install -g homebridge`
-2. Install homebridge-http using: `npm install -g homebridge-better-http-rgb`
+2. Install homebridge-http using: `npm install -g homebridge-http-rgb`
 3. Update your configuration file.  See below for examples.
 
 
@@ -36,7 +36,7 @@ callback for getting and setting the following characteristics to Homekit:
             },
 
             "color": {
-                "url": "http://localhost/api/v1/set"
+                "url": "http://localhost/api/v1/color"
                 "brightness": true
             }
         }
@@ -84,7 +84,7 @@ callback for getting and setting the following characteristics to Homekit:
             },
 
             "color": {
-                "url": "http://localhost/api/v1/set"
+                "url": "http://localhost/api/v1/color"
             }
         }
     ]
@@ -96,9 +96,39 @@ remove the brightness component from the config.
 
 # Interfacing
 
-All of the urls expect a 200 HTTP status code and a body of a single
-string with no HTML markup.
+All of the urls expect a 200 HTTP status code and a body of a single string with no HTML markup. The URLs for each interface are used for both setting and getting values. Detailed below are what the URLs should return or accept.
 
-* `GET` `switch.url` expects `0` for Off, and `1` for On.
-* `GET` `brightness.url` expects a number from 0 to 100.
-* `GET` `color.url` expects a 6-digit hexidemial number.
+## GET
+* `GET` `switch.url` should return `0` for Off, and `1` for On.
+* `GET` `brightness.url` should return a number from `0` to `100`.
+* `GET` `color.url` should return a 6-digit hexidemial number.
+
+## POST
+
+Setting values requires sending a POST request to the specified URL. The web server endpoints should accept a POST request with a body structured like so:
+```
+{
+  "value": [actual value]
+}
+```
+
+Since each URL is specific to the parameter you're adjusting, that can be used as the identifier so the body simply just includes the new value of whatever you're changing.
+
+A simple setup for an Express 4.0 route would look like this (where name can be `color`, `brightness`, or `status`):
+```
+router.post('/api/v1/:name', function(req, res, next) {
+}
+```
+
+# Testing
+A simple test has been written using Express and Mocha. You can use these tests directly or using `Grunt`. You can easily test your developments by running any of the below. Note running `grunt` by itself will call JSHint and the Mocha tests. 
+```
+grunt
+```
+```
+grunt test
+```
+```
+grunt lint
+```
+
