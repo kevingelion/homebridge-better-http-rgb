@@ -1,7 +1,8 @@
 module.exports = function() {
     // Fire up fake API server
-    var express = require("express");
-    var bodyParser = require('body-parser');
+    var express = require("express"),
+        bodyParser = require('body-parser'),
+        chroma = require('chroma-js');
 
     var app = express();
     app.use(bodyParser.urlencoded({ extended: true }));
@@ -38,9 +39,13 @@ module.exports = function() {
                 res.send(cache.power.toString());
                 break;
             case "brightness":
+                cache.brightness = req.body.value;
                 res.send(cache.brightness.toString());
                 break;
             case "color":
+                var hex = req.body.value;
+                cache.color = hex;
+                cache.brightness = chroma("#" + hex).get("hsv.v") * 100;
                 res.send(cache.color.toString());
                 break;
         }

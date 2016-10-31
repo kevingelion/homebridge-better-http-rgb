@@ -1,7 +1,7 @@
 var Service, Characteristic;
-var request = require('request');
-var chroma = require('chroma-js');
-var _ = require('underscore');
+var request = require('request'),
+    chroma = require('chroma-js'),
+    _ = require('underscore');
 
 /**
  * @module homebridge
@@ -122,6 +122,8 @@ HTTP_RGB.prototype = {
                         .on('set', this.setSaturation.bind(this));
                 }
 
+                this._debounceRGB = _.debounce(this._setRGB, 100);
+
                 return [lightbulbService, informationService];
 
             default:
@@ -213,7 +215,7 @@ HTTP_RGB.prototype = {
      *
      * @param {function} callback The callback that handles the response.
      */
-    setBrightness: function(level, callback) {
+    setBrightness: function(level, callback, test) {
         if (!this.has.brightness) {
             this.log.warn("Ignoring request; No 'brightness' defined.");
             callback(new Error("No 'brightness' defined in configuration"));
@@ -235,8 +237,12 @@ HTTP_RGB.prototype = {
                 }
             }.bind(this));
         } else {
-            this._setRGB();
-            callback();
+            if (test) {
+              callback(undefined, this._setRGB(true, "brightness"));
+            } else {
+              this._debounceRGB();
+              callback();
+            }
         }
     },
 
@@ -275,7 +281,7 @@ HTTP_RGB.prototype = {
      *
      * @param {function} callback The callback that handles the response.
      */
-    setHue: function(level, callback) {
+    setHue: function(level, callback, test) {
         if (this.color && typeof this.color.url !== 'string') {
             this.log.warn("Ignoring request; problem with 'color' variables.");
             callback(new Error("There was a problem parsing the 'color' section of your configuration."));
@@ -284,8 +290,12 @@ HTTP_RGB.prototype = {
         this.log('Caching Hue as %s ...', level);
         this.cache.hue = level;
 
-        this._setRGB();
-        callback();
+        if (test) {
+          callback(undefined, this._setRGB(true, "hue"));
+        } else {
+          this._debounceRGB();
+          callback();
+        }
     },
 
     /**
@@ -324,7 +334,7 @@ HTTP_RGB.prototype = {
      * @param {number} level The saturation of the new call.
      * @param {function} callback The callback that handles the response.
      */
-    setSaturation: function(level, callback) {
+    setSaturation: function(level, callback, test) {
         if (this.color && typeof this.color.url !== 'string') {
             this.log.warn("Ignoring request; problem with 'color' variables.");
             callback(new Error("There was a problem parsing the 'color' section of your configuration."));
@@ -333,8 +343,12 @@ HTTP_RGB.prototype = {
         this.log('Caching Saturation as %s ...', level);
         this.cache.saturation = level;
 
-        this._setRGB();
-        callback();
+        if (test) {
+          callback(undefined, this._setRGB(true, "saturation"));
+        } else {
+          this._debounceRGB();
+          callback();
+        }
     },
 
     /**
@@ -342,7 +356,7 @@ HTTP_RGB.prototype = {
      *
      * @param {function} callback The callback that handles the response.
      */
-    _setRGB: _.debounce(function() {
+    _setRGB: function(test, type) {
         var hex = chroma(this.cache.hue, this.cache.saturation / 100, this.cache.brightness / 100, 'hsv').hex().replace('#', '');
         this.log('_setRGB converting H:%s S:%s B:%s to RGB:%s ...', this.cache.hue, this.cache.saturation, this.cache.brightness, hex);
 
@@ -355,7 +369,22 @@ HTTP_RGB.prototype = {
                 this.log('... _setRGB() successfully set to #%s', hex);
             }
         }.bind(this));
-    }, 200),
+
+        // When running tests, this function should return cached values
+        if (test) {
+            switch (type) {
+                case "hue":
+                    return this.cache.hue;
+                    break;
+                case "saturation":
+                    return this.cache.saturation;
+                    break;
+                default:
+                    return this.cache.brightness;
+                    break;
+            }
+        }
+    },
 
     /** Utility Functions **/
     /**

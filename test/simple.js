@@ -70,16 +70,40 @@ describe("HTTP-RGB Accessory", function() {
     });
 
     describe("color", function() {
-        it("getBrightness", function(done) {
+        it("getBrightness: 0", function(done) {
             my.getBrightness(function(err, val) { expect(val.toString()).to.equal("0"); done(); });
         });
 
-        it("getSaturation", function(done) {
+        it("getSaturation: 0", function(done) {
             my.getSaturation(function(err, val) { expect(val.toString()).to.equal("0"); done(); });
         });
 
-        it("getHue", function(done) {
+        it("getHue: 0", function(done) {
             my.getHue(function(err, val) { expect(val.toString()).to.equal("0"); done(); });
+        });
+
+        it("setBrightness: 100", function(done) {
+            my.setBrightness(100, function(err, val) { expect(err).to.equal(undefined); expect(val).to.equal(100); done(); }, true);
+        });
+
+        it("setSaturation: 100", function(done) {
+            my.setSaturation(100, function(err, val) { expect(err).to.equal(undefined); expect(val).to.equal(100); done(); }, true);
+        });
+
+        it("setHue: 180", function(done) {
+            my.setHue(180, function(err, val) { expect(err).to.equal(undefined); expect(val).to.equal(180); done(); }, true);
+        });
+
+        it("getBrightness: 100", function(done) {
+            my.getBrightness(function(err, val) { expect(val.toString()).to.equal("100"); done(); });
+        });
+
+        it("getSaturation: 100", function(done) {
+            my.getSaturation(function(err, val) { expect(val.toString()).to.equal("100"); done(); });
+        });
+
+        it("getHue: 180", function(done) {
+            my.getHue(function(err, val) { expect(val.toString()).to.equal("180"); done(); });
         });
     });
 });
