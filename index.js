@@ -31,8 +31,8 @@ function HTTP_RGB(log, config) {
     this.service     = 'Light';
     this.name        = config.name;
 
-    this.username    = config.username                  || '';
-    this.password    = config.password                  || '';
+    this.username    = config.username || '';
+    this.password    = config.password || '';
 
     // Handle the basic on/off
     this.switch = { powerOn: {}, powerOff: {} };
